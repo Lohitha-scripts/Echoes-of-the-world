@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echoes of the World - Sonic Museum</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Lora:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="custom-cursor"></div>
+
+    <header class="hero">
+        <div class="noise-overlay"></div>
+        <div class="hero-content">
+            <h1>Echoes of the World</h1>
+            <p class="tagline">11 rare instruments. One planet. Listen.</p>
+        </div>
+        <div class="top-nav">
+            <button id="soundscape-toggle" class="nav-btn">Build Soundscape 🎛</button>
+            <button id="ambient-toggle" class="nav-btn">Ambient Mode 🌐</button>
+        </div>
+    </header>
+
+    <!-- FEATURE 2: Mood Panel Toggle & Sidebar -->
+    <button id="mood-toggle" class="mood-toggle-btn">✦</button>
+    <aside id="mood-panel" class="mood-panel">
+        <div class="mood-panel-header">
+            <h2>Play by Mood</h2>
+            <button id="mood-close" class="close-btn">×</button>
+        </div>
+        <div class="mood-grid">
+            <div class="mood-tile" data-mood="calm">🌿 Calm</div>
+            <div class="mood-tile" data-mood="energised">🔥 Energised</div>
+            <div class="mood-tile" data-mood="melancholic">😢 Melancholic</div>
+            <div class="mood-tile" data-mood="mystical">🌌 Mystical</div>
+            <div class="mood-tile" data-mood="adventurous">🌄 Adventurous</div>
+            <div class="mood-tile" data-mood="meditative">🧘 Meditative</div>
+        </div>
+    </aside>
+
+    <main>
+        <div id="masonry-grid" class="masonry-grid">
+            <!-- Cards will be injected here via JavaScript -->
+        </div>
+
+        <!-- FEATURE 1: Sonic Atlas -->
+        <section id="sonic-atlas" class="sonic-atlas">
+            <h2 class="section-title">Sonic Atlas</h2>
+            <div class="map-container">
+                <!-- Inline SVG World Map Path Data -->
+                <svg viewBox="0 0 1000 500" class="world-map-svg" id="world-map">
+                    <!-- A very simplified world map path -->
+                    <path d="M120,80 Q250,50 380,80 T600,100 T850,50 L900,120 Q800,200 850,300 T700,450 T500,400 T300,450 T100,350 Z" fill="#1a2235" stroke="#c9a84c" stroke-width="1"></path>
+                    <path d="M400,150 Q450,130 500,160 T550,250 T450,300 T380,220 Z" fill="#1a2235" stroke="#c9a84c" stroke-width="1"></path>
+                    <path d="M600,200 Q700,180 800,250 T750,350 T650,300 Z" fill="#1a2235" stroke="#c9a84c" stroke-width="1"></path>
+                </svg>
+                <div id="map-pins-container"></div>
+            </div>
+        </section>
+
+        <!-- FEATURE 3: Therapy Corner -->
+        <section id="therapy-corner" class="therapy-corner">
+            <h2 class="section-title serif-title">Sound & Healing</h2>
+            <div class="therapy-scroll-row">
+                <div class="therapy-card" style="--glow-color: #008080;">
+                    <div class="therapy-content">
+                        <h3>🫁 Stress Relief</h3>
+                        <p>Studies show pentatonic scales and drone instruments lower cortisol. Try: Guqin, Sarangi, Hand Drum.</p>
+                    </div>
+                    <div class="therapy-controls">
+                        <button class="therapy-play-btn" data-therapy="stress">▶</button>
+                        <div class="breathing-circle"></div>
+                    </div>
+                </div>
+                <div class="therapy-card" style="--glow-color: #ffbf00;">
+                    <div class="therapy-content">
+                        <h3>🧠 Focus & Deep Work</h3>
+                        <p>Rhythmic, non-lyrical textures improve cognitive retention. Try: Mbira, Gayageum, Nyckelharpa.</p>
+                    </div>
+                    <div class="therapy-controls">
+                        <button class="therapy-play-btn" data-therapy="focus">▶</button>
+                        <div class="breathing-circle"></div>
+                    </div>
+                </div>
+                <div class="therapy-card" style="--glow-color: #4b0082;">
+                    <div class="therapy-content">
+                        <h3>💤 Sleep Induction</h3>
+                        <p>Slow bowed strings and resonant tones slow brainwaves toward delta state. Try: Duduk, Hardanger Fiddle, Crystal Baschet.</p>
+                    </div>
+                    <div class="therapy-controls">
+                        <button class="therapy-play-btn" data-therapy="sleep">▶</button>
+                        <div class="breathing-circle"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- FEATURE 4: DNA Visualizer Overlay -->
+    <div id="dna-visualizer" class="overlay hidden">
+        <div class="overlay-backdrop"></div>
+        <div class="dna-content">
+            <button id="dna-close" class="close-btn">×</button>
+            <div class="dna-grid">
+                <div class="dna-image-container">
+                    <img id="dna-image" src="" alt="Instrument">
+                </div>
+                <div class="dna-stats-container">
+                    <canvas id="dna-chart" width="400" height="400"></canvas>
+                    <div id="dna-tags" class="dna-tags"></div>
+                    <div class="similar-instruments">
+                        <h4>Similar Instruments</h4>
+                        <div id="dna-similar" class="similar-row"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FEATURE 5: Soundscape Builder Drawer -->
+    <div id="soundscape-builder" class="bottom-drawer hidden">
+        <div class="drawer-header">
+            <h2>Soundscape Builder 🎛</h2>
+            <button id="soundscape-close" class="close-btn">×</button>
+        </div>
+        <div class="soundscape-content">
+            <div class="soundscape-left">
+                <div id="volume-sliders" class="volume-sliders-container">
+                    <!-- Sliders injected by JS -->
+                </div>
+                <div class="soundscape-controls">
+                    <button id="master-play-btn" class="master-btn">Play Mix</button>
+                    <button id="master-stop-btn" class="master-btn">Stop Mix</button>
+                    <div class="preset-controls">
+                        <input type="text" id="preset-name" placeholder="Preset Name">
+                        <button id="save-preset-btn">Save</button>
+                    </div>
+                    <div id="preset-chips" class="preset-chips">
+                        <button class="preset-chip" data-preset="forest_dawn">Forest Dawn</button>
+                        <button class="preset-chip" data-preset="desert_night">Desert Night</button>
+                        <!-- Custom presets here -->
+                    </div>
+                </div>
+            </div>
+            <div class="soundscape-right">
+                <div class="orbital-visual">
+                    <div class="central-sphere"></div>
+                    <div id="orbit-nodes-container" class="orbit-nodes-container">
+                        <!-- Orbiting nodes injected by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="now-playing-bar" class="now-playing-bar hidden">
+        <div class="now-playing-info">
+            <span class="playing-label">Now Playing:</span>
+            <span id="playing-instrument-name" class="instrument-name">None</span>
+        </div>
+        <div class="waveform-visualizer">
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+            <div class="bar"></div>
+        </div>
+        <button id="stop-btn" class="stop-btn">
+            <svg viewBox="0 0 24 24" width="24" height="24">
+                <rect x="6" y="6" width="12" height="12" fill="currentColor"></rect>
+            </svg>
+        </button>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
