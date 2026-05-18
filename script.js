@@ -161,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('mousemove', (e) => {
         mouseX = e.clientX; mouseY = e.clientY;
         const target = e.target;
-        if (target.closest('button') || target.closest('.instrument-card') || target.closest('.map-pin') || target.closest('.mood-tile') || target.closest('input[type=range]')) {
+        if (target.closest('button') || target.closest('.instrument-card') || target.closest('.map-pin') || target.closest('.mood-tile') || target.closest('input[type=range]') || target.closest('input[type=text]') || target.closest('input[type=password]') || target.closest('textarea')) {
             cursor.classList.add('hovering');
         } else {
             cursor.classList.remove('hovering');
@@ -178,6 +178,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const grid = document.getElementById('masonry-grid');
     const audioElements = {};
+    const userInstrumentDefaults = {
+        origin: 'User Upload',
+        regionColor: '#c9a84c',
+        stats: [50, 50, 50, 50, 50],
+        tags: ['User Upload'],
+        similar: []
+    };
+    let userInstruments = [];
     
     // Playback State Machine
     let currentMode = 'idle'; // idle, normal, ambient, mood, therapy, soundscape
@@ -207,18 +215,87 @@ document.addEventListener('DOMContentLoaded', () => {
         if(soundscapeMixPlaying) stopSoundscapeMix();
     }
 
-    // Build Cards & Audio
-    instrumentsData.forEach((inst, idx) => {
-        const audio = new Audio(inst.audio);
+    function getAllPlayableInstruments() {
+        return [...instrumentsData, ...userInstruments];
+    }
+
+    // --- IndexedDB persistence for uploads (avoids localStorage size limits) ---
+    const UPLOAD_DB_NAME = 'echoes_uploads_db';
+    const UPLOAD_STORE = 'instruments';
+    const UPLOAD_DB_VERSION = 1;
+
+    function openUploadsDb() {
+        return new Promise((resolve, reject) => {
+            const req = indexedDB.open(UPLOAD_DB_NAME, UPLOAD_DB_VERSION);
+            req.onerror = () => reject(req.error || new Error('Failed to open database.'));
+            req.onupgradeneeded = () => {
+                const db = req.result;
+                if (!db.objectStoreNames.contains(UPLOAD_STORE)) {
+                    db.createObjectStore(UPLOAD_STORE, { keyPath: 'id' });
+                }
+            };
+            req.onsuccess = () => resolve(req.result);
+        });
+    }
+
+    async function idbGetAllUploads() {
+        const db = await openUploadsDb();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(UPLOAD_STORE, 'readonly');
+            const store = tx.objectStore(UPLOAD_STORE);
+            const req = store.getAll();
+            req.onerror = () => reject(req.error || new Error('Failed to load uploads.'));
+            req.onsuccess = () => resolve(Array.isArray(req.result) ? req.result : []);
+        });
+    }
+
+    async function idbPutUpload(record) {
+        const db = await openUploadsDb();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(UPLOAD_STORE, 'readwrite');
+            const store = tx.objectStore(UPLOAD_STORE);
+            const req = store.put(record);
+            req.onerror = () => reject(req.error || new Error('Failed to save upload.'));
+            req.onsuccess = () => resolve();
+        });
+    }
+
+    function attachObjectUrls(inst) {
+        const imageUrl = URL.createObjectURL(inst.imageBlob);
+        const audioUrl = URL.createObjectURL(inst.audioBlob);
+        return { ...inst, imageUrl, audioUrl, _objectUrls: [imageUrl, audioUrl] };
+    }
+
+    function revokeObjectUrls(inst) {
+        if (!inst || !Array.isArray(inst._objectUrls)) return;
+        inst._objectUrls.forEach(u => {
+            try { URL.revokeObjectURL(u); } catch {}
+        });
+        inst._objectUrls = [];
+    }
+
+    function ensureAudio(inst) {
+        if (audioElements[inst.id]) return audioElements[inst.id];
+        const audioSrc = inst.audioUrl || inst.audio;
+        const audio = new Audio(audioSrc);
         audioElements[inst.id] = audio;
+        audio.addEventListener('ended', () => {
+            if (currentMode === 'normal') stopAllAudio();
+        });
+        return audio;
+    }
+
+    function buildInstrumentCard(inst, idx, { enableDNA }) {
+        ensureAudio(inst);
 
         const card = document.createElement('div');
         card.className = 'instrument-card';
         card.dataset.id = inst.id;
         setTimeout(() => card.classList.add('loaded'), idx * 100);
 
+        const imageSrc = inst.imageUrl || inst.image;
         card.innerHTML = `
-            <img src="${inst.image}" class="card-bg" alt="${inst.name}">
+            <img src="${imageSrc}" class="card-bg" alt="${inst.name}">
             <div class="card-overlay">
                 <h2 class="card-title">
                     ${inst.name}
@@ -235,27 +312,46 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
 
         card.addEventListener('click', () => {
-            // If already playing normally, open DNA visualizer instead of just stopping
-            if (currentMode === 'normal' && currentlyPlayingId === inst.id) {
+            if (enableDNA && currentMode === 'normal' && currentlyPlayingId === inst.id) {
                 openDNAVisualizer(inst);
             } else {
                 playNormal(inst.id);
             }
         });
-        
-        // Let's add a context menu or double click for DNA if they just want to view it
-        card.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            openDNAVisualizer(inst);
-        });
+
+        if (enableDNA) {
+            card.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                openDNAVisualizer(inst);
+            });
+        }
 
         grid.appendChild(card);
-        
-        audio.addEventListener('ended', () => {
-            if (currentMode === 'normal') stopAllAudio();
-            // In mood mode, moodInterval handles shuffling.
-        });
-    });
+    }
+
+    // Build Cards & Audio (base instruments only)
+    instrumentsData.forEach((inst, idx) => buildInstrumentCard(inst, idx, { enableDNA: true }));
+
+    // Load + render user instruments (landing grid only)
+    (async () => {
+        try {
+            const records = await idbGetAllUploads();
+            userInstruments = records
+                .filter(r =>
+                    r &&
+                    typeof r.id === 'string' &&
+                    typeof r.name === 'string' &&
+                    typeof r.description === 'string' &&
+                    r.imageBlob instanceof Blob &&
+                    r.audioBlob instanceof Blob
+                )
+                .map(r => attachObjectUrls({ ...userInstrumentDefaults, ...r }));
+
+            userInstruments.forEach((inst, idx) => buildInstrumentCard(inst, instrumentsData.length + idx, { enableDNA: false }));
+        } catch {
+            userInstruments = [];
+        }
+    })();
 
     // NORMAL PLAYBACK
     function playNormal(id) {
@@ -268,8 +364,8 @@ document.addEventListener('DOMContentLoaded', () => {
         audio.play();
         currentlyPlayingId = id;
         
-        const inst = instrumentsData.find(i => i.id === id);
-        document.getElementById('playing-instrument-name').textContent = inst.name;
+        const inst = getAllPlayableInstruments().find(i => i.id === id);
+        document.getElementById('playing-instrument-name').textContent = inst ? inst.name : 'Unknown';
         document.getElementById('now-playing-bar').classList.remove('hidden');
         document.getElementById('now-playing-bar').classList.add('visible');
         
@@ -722,5 +818,152 @@ document.addEventListener('DOMContentLoaded', () => {
         
         document.getElementById('preset-name').value = '';
         loadCustomPresetsUI();
+    });
+
+    // ---- Upload Instrument: fake curator login (frontend only), then upload overlay ----
+    const uploadBtn = document.getElementById('upload-instrument-btn');
+    const uploadLoginOverlay = document.getElementById('upload-login-overlay');
+    const uploadLoginForm = document.getElementById('upload-login-form');
+    const uploadLoginUser = document.getElementById('upload-login-user');
+    const uploadLoginPass = document.getElementById('upload-login-pass');
+    const uploadLoginError = document.getElementById('upload-login-error');
+    const uploadLoginClose = document.getElementById('upload-login-close');
+    const uploadLoginCancel = document.getElementById('upload-login-cancel');
+
+    const uploadOverlay = document.getElementById('upload-overlay');
+    const uploadClose = document.getElementById('upload-close');
+    const uploadCancel = document.getElementById('upload-cancel');
+    const uploadForm = document.getElementById('upload-form');
+    const uploadImageInput = document.getElementById('upload-image');
+    const uploadAudioInput = document.getElementById('upload-audio');
+    const uploadDescInput = document.getElementById('upload-description');
+    const uploadError = document.getElementById('upload-error');
+
+    /** Hardcoded demo curators — no backend; matches are case-sensitive for password, ID trimmed & lowercased */
+    const UPLOAD_CURATOR_ALLOWLIST = [
+        { userId: 'curator', password: 'legitinstrument1' },
+        { userId: 'sonic_museum', password: 'echoes2026' }
+    ];
+
+    function verifyCuratorCredentials(userId, password) {
+        const id = String(userId || '').trim().toLowerCase();
+        const pass = String(password || '');
+        return UPLOAD_CURATOR_ALLOWLIST.some(
+            (row) => row.userId.toLowerCase() === id && row.password === pass
+        );
+    }
+
+    function openUploadLoginOverlay() {
+        uploadLoginError.textContent = '';
+        uploadLoginForm.reset();
+        uploadLoginOverlay.classList.remove('hidden');
+        uploadLoginOverlay.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeUploadLoginOverlay() {
+        uploadLoginOverlay.classList.add('hidden');
+        uploadLoginOverlay.setAttribute('aria-hidden', 'true');
+    }
+
+    function openUploadOverlay() {
+        uploadError.textContent = '';
+        uploadForm.reset();
+        uploadOverlay.classList.remove('hidden');
+        uploadOverlay.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeUploadOverlay() {
+        uploadOverlay.classList.add('hidden');
+        uploadOverlay.setAttribute('aria-hidden', 'true');
+    }
+
+    const MAX_IMAGE_MB = 15;
+    const MAX_AUDIO_MB = 40;
+    const mb = (bytes) => bytes / (1024 * 1024);
+
+    function humanNameFromFile(file) {
+        const name = (file && file.name) ? file.name : 'Instrument';
+        return name.replace(/\.[^/.]+$/, '').replace(/[_-]+/g, ' ').trim() || 'Instrument';
+    }
+
+    uploadBtn.addEventListener('click', openUploadLoginOverlay);
+    uploadLoginClose.addEventListener('click', closeUploadLoginOverlay);
+    uploadLoginCancel.addEventListener('click', closeUploadLoginOverlay);
+    uploadLoginOverlay.addEventListener('click', (e) => {
+        if (e.target.classList.contains('overlay-backdrop')) closeUploadLoginOverlay();
+    });
+    uploadLoginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        uploadLoginError.textContent = '';
+        const ok = verifyCuratorCredentials(uploadLoginUser.value, uploadLoginPass.value);
+        if (!ok) {
+            uploadLoginError.textContent = 'Curator ID or password not recognized. Only verified curators may upload.';
+            return;
+        }
+        closeUploadLoginOverlay();
+        openUploadOverlay();
+    });
+
+    uploadClose.addEventListener('click', closeUploadOverlay);
+    uploadCancel.addEventListener('click', closeUploadOverlay);
+    uploadOverlay.addEventListener('click', (e) => {
+        if (e.target.classList.contains('overlay-backdrop')) closeUploadOverlay();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        if (!uploadLoginOverlay.classList.contains('hidden')) {
+            closeUploadLoginOverlay();
+            return;
+        }
+        if (!uploadOverlay.classList.contains('hidden')) closeUploadOverlay();
+    });
+
+    uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        uploadError.textContent = '';
+
+        const imageFile = uploadImageInput.files && uploadImageInput.files[0];
+        const audioFile = uploadAudioInput.files && uploadAudioInput.files[0];
+        const description = uploadDescInput.value.trim();
+
+        if (!imageFile || !audioFile || !description) {
+            uploadError.textContent = 'Please provide an image, an audio file, and a description.';
+            return;
+        }
+
+        try {
+            if (mb(imageFile.size) > MAX_IMAGE_MB) {
+                uploadError.textContent = `Image is too large. Please use an image under ${MAX_IMAGE_MB}MB.`;
+                return;
+            }
+            if (mb(audioFile.size) > MAX_AUDIO_MB) {
+                uploadError.textContent = `Audio is too large. Please use an audio file under ${MAX_AUDIO_MB}MB.`;
+                return;
+            }
+
+            const id = `user_${Date.now()}`;
+            const record = {
+                ...userInstrumentDefaults,
+                id,
+                name: humanNameFromFile(audioFile),
+                description,
+                imageBlob: imageFile,
+                audioBlob: audioFile
+            };
+
+            await idbPutUpload(record);
+            const inst = attachObjectUrls(record);
+            userInstruments.push(inst);
+
+            buildInstrumentCard(inst, instrumentsData.length + userInstruments.length - 1, { enableDNA: false });
+            closeUploadOverlay();
+        } catch (err) {
+            uploadError.textContent = 'Upload failed. Please try again (or use smaller files).';
+        }
+    });
+
+    // Cleanup object URLs on page unload
+    window.addEventListener('beforeunload', () => {
+        userInstruments.forEach(revokeObjectUrls);
     });
 });

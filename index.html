@@ -22,6 +22,7 @@
         <div class="top-nav">
             <button id="soundscape-toggle" class="nav-btn">Build Soundscape 🎛</button>
             <button id="ambient-toggle" class="nav-btn">Ambient Mode 🌐</button>
+            <button id="upload-instrument-btn" class="nav-btn">Upload Instrument ⬆</button>
         </div>
     </header>
 
@@ -117,6 +118,70 @@
                         <div id="dna-similar" class="similar-row"></div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fake curator login (frontend only) before upload -->
+    <div id="upload-login-overlay" class="overlay hidden" aria-hidden="true">
+        <div class="overlay-backdrop"></div>
+        <div class="upload-content">
+            <button id="upload-login-close" type="button" class="close-btn">×</button>
+            <div class="upload-inner">
+                <h2 class="upload-title">Curator verification</h2>
+                <p class="upload-subtitle">Sign in to confirm you are authorized to add instruments and audio to the gallery. Verification runs in your browser only—no server or database.</p>
+                <form id="upload-login-form" class="upload-form">
+                    <div class="upload-field">
+                        <label for="upload-login-user">Curator ID</label>
+                        <input id="upload-login-user" type="text" name="username" autocomplete="username" required placeholder="Your curator ID">
+                    </div>
+                    <div class="upload-field">
+                        <label for="upload-login-pass">Password</label>
+                        <input id="upload-login-pass" type="password" name="password" autocomplete="current-password" required placeholder="Password">
+                    </div>
+                    <div class="upload-actions">
+                        <button type="submit" class="upload-submit-btn">Verify &amp; continue</button>
+                        <button type="button" id="upload-login-cancel" class="upload-cancel-btn">Cancel</button>
+                    </div>
+                    <p class="login-demo-hint" role="note">Demo access (hardcoded on this page): ID <code>curator</code> · password <code>legitinstrument1</code></p>
+                    <div id="upload-login-error" class="upload-error" role="alert" aria-live="polite"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Upload Instrument Overlay -->
+    <div id="upload-overlay" class="overlay hidden" aria-hidden="true">
+        <div class="overlay-backdrop"></div>
+        <div class="upload-content">
+            <button id="upload-close" class="close-btn">×</button>
+            <div class="upload-inner">
+                <h2 class="upload-title">Upload Instrument</h2>
+                <p class="upload-subtitle">Add your own instrument card with an image, description, and audio.</p>
+
+                <form id="upload-form" class="upload-form">
+                    <div class="upload-field">
+                        <label for="upload-image">Instrument image</label>
+                        <input id="upload-image" type="file" accept="image/*" required>
+                    </div>
+
+                    <div class="upload-field">
+                        <label for="upload-audio">Instrument audio</label>
+                        <input id="upload-audio" type="file" accept="audio/*" required>
+                    </div>
+
+                    <div class="upload-field">
+                        <label for="upload-description">Description</label>
+                        <textarea id="upload-description" rows="5" placeholder="Describe the instrument..." required></textarea>
+                    </div>
+
+                    <div class="upload-actions">
+                        <button type="submit" class="upload-submit-btn">Add to Landing Page</button>
+                        <button type="button" id="upload-cancel" class="upload-cancel-btn">Cancel</button>
+                    </div>
+
+                    <div id="upload-error" class="upload-error" role="alert" aria-live="polite"></div>
+                </form>
             </div>
         </div>
     </div>

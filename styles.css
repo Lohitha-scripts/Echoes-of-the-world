@@ -467,6 +467,118 @@ canvas { max-width: 100%; }
 .similar-card { width: 80px; height: 80px; border-radius: 8px; border: 1px solid var(--accent-gold); background-size: cover; background-position: center; cursor: none; transition: transform 0.3s; }
 .similar-card:hover { transform: scale(1.1); box-shadow: 0 0 10px var(--accent-gold);}
 
+/* Upload Overlay */
+.upload-content {
+    position: relative;
+    width: 92%;
+    max-width: 720px;
+    max-height: 85vh;
+    background: #0a0a0a;
+    border: 1px solid var(--accent-gold);
+    border-radius: 8px;
+    z-index: 210;
+    overflow: auto;
+    box-shadow: 0 0 40px rgba(0,0,0,0.6);
+}
+
+#upload-close { position: absolute; top: 1rem; right: 1rem; z-index: 220; }
+
+.upload-inner {
+    padding: 2.5rem 2rem 2rem;
+}
+
+.upload-title {
+    font-family: var(--font-heading);
+    color: var(--accent-gold);
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.upload-subtitle {
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+}
+
+.upload-form {
+    display: grid;
+    gap: 1rem;
+}
+
+.upload-field label {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: var(--accent-light);
+    font-family: var(--font-body);
+}
+
+.upload-field input[type="file"],
+.upload-field input[type="text"],
+.upload-field input[type="password"],
+.upload-field textarea {
+    width: 100%;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(201,168,76,0.35);
+    color: var(--text-main);
+    border-radius: 6px;
+    padding: 0.8rem;
+    outline: none;
+    cursor: none;
+}
+
+.upload-field textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.upload-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 0.25rem;
+}
+
+.upload-submit-btn {
+    background: var(--accent-gold);
+    color: #000;
+    border: none;
+    padding: 0.7rem 1rem;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: none;
+}
+
+.upload-cancel-btn {
+    background: transparent;
+    color: var(--accent-light);
+    border: 1px solid rgba(201,168,76,0.6);
+    padding: 0.7rem 1rem;
+    border-radius: 6px;
+    cursor: none;
+}
+
+.upload-error {
+    min-height: 1.2em;
+    color: #ff7a7a;
+    font-size: 0.95rem;
+}
+
+.login-demo-hint {
+    margin-top: 0.25rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.login-demo-hint code {
+    color: var(--accent-light);
+    background: rgba(201, 168, 76, 0.12);
+    padding: 0.1rem 0.35rem;
+    border-radius: 4px;
+    border: 1px solid rgba(201, 168, 76, 0.35);
+    font-size: 0.9em;
+}
+
 /* Bottom Drawer (Soundscape) */
 .bottom-drawer { position: fixed; bottom: 0; left: 0; width: 100%; height: 80vh; background: rgba(10,10,10,0.85); backdrop-filter: blur(20px); border-top: 1px solid var(--accent-gold); z-index: 150; transform: translateY(0); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column; }
 .bottom-drawer.hidden { transform: translateY(100%); }
